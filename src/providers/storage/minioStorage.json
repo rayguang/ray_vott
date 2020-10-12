@@ -1,0 +1,19 @@
+{
+    "title": "${strings.connections.providers.minio.title}",
+    "description": "${strings.connections.providers.minio.description}",
+    "required": [
+        "folderName"
+    ],
+    "type": "object",
+    "properties": {
+        "folderName": {
+            "title": "${strings.connections.providers.minio.folderName.title}",
+            "type": "string"
+        },
+        "createFolder": {
+            "title": "${strings.connections.providers.minio.createFolder.title}",
+            "description": "${strings.connections.providers.minio.createFolder.description}",
+            "type": "boolean"
+        }
+    }
+}

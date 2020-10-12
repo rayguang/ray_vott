@@ -1,0 +1,96 @@
+parameters:
+  GitHubConnection: '' # defaults for any parameters that aren't specified
+  repositoryName: ''
+  isPreRelease: false
+  isDraft: false
+
+jobs:
+  - template: build-artifact.yml
+    parameters:
+      name: LinuxArtifact
+      pool:
+        vmImage: ubuntu-16.04
+      os: linux
+      artifact: vott*.snap
+
+  - template: build-artifact.yml
+    parameters:
+      name: WindowsArtifact
+      pool:
+        vmImage: "windows-2019"
+      os: windows
+      artifact: vott*.exe
+
+  - template: build-artifact.yml
+    parameters:
+      name: MacOSArtifact
+      pool:
+        vmImage: macOS-10.15
+      os: mac
+      artifact: vott*.dmg
+
+  - job: Create_Github_Release
+    timeoutInMinutes: 30 # timeout on job if deploy is not completed in 30 minutes
+    dependsOn:
+      - LinuxArtifact
+      - WindowsArtifact
+      - MacOSArtifact
+
+    pool:
+      vmImage: ubuntu-16.04
+
+    steps:
+    - download: current
+    - template: git-pull-current-branch.yml
+
+    - bash: |
+        set -e
+
+        echo
+        echo "======> Set commit sha"
+        COMMIT_SHA=$(git rev-parse --short HEAD)
+        echo "COMMIT SHA: $COMMIT_SHA"
+        echo "##vso[task.setvariable variable=COMMIT_SHA]$COMMIT_SHA"
+
+        ###
+        # These variables were set in the "Version Bump" stage.  There are
+        # currently no way to pass variables between stages, hence this workaround.
+        ###
+        echo
+        echo "======> Set version variables"
+        CURRENT_VERSION=$(cat $(Pipeline.Workspace)/variables/CURRENT_VERSION)
+        echo "##vso[task.setvariable variable=CURRENT_VERSION]$CURRENT_VERSION"
+
+        NEXT_VERSION=$(cat $(Pipeline.Workspace)/variables/NEXT_VERSION)
+        echo "##vso[task.setvariable variable=NEXT_VERSION]$NEXT_VERSION"
+      displayName: "Set variables for release task"
+
+    - task: GitHubRelease@1
+      displayName: 'GitHub release (create)'
+      inputs:
+        gitHubConnection: ${{ parameters.GitHubConnection }}
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'create'
+        target: '$(Build.SourceBranch)'
+        tagSource: 'userSpecifiedTag'
+        tag: $(NEXT_VERSION)
+        releaseNotesSource: 'inline'
+        releaseNotesInline: |
+          ## Web Release
+          ### Dev
+          $(DEV_URL)
+
+          ### Prod
+          $(PROD_URL)
+
+          ## Docs
+          https://github.com/Microsoft/VoTT/blob/$(Build.SourceBranch)/README.md
+        assets: |
+          ../linux/*
+          ../windows/*
+          ../mac/*
+        isDraft: ${{ parameters.isDraft }}
+        isPreRelease: ${{ parameters.isPrelease }}
+        changeLogCompareToRelease: 'lastNonDraftReleaseByTag'
+        changeLogCompareToReleaseTag: $(CURRENT_VERSION)
+        changeLogType: 'commitBased'

@@ -1,0 +1,19 @@
+{
+    "title": "${strings.connections.providers.firebase.title}",
+    "description": "${strings.connections.providers.firebase.description}",
+    "required": [
+        "folderName"
+    ],
+    "type": "object",
+    "properties": {
+        "folderName": {
+            "title": "${strings.connections.providers.firebase.folderName.title}",
+            "type": "string"
+        },
+        "createFolder": {
+            "title": "${strings.connections.providers.firebase.createFolder.title}",
+            "description": "${strings.connections.providers.firebase.createFolder.description}",
+            "type": "boolean"
+        }
+    }
+}
